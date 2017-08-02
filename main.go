@@ -34,6 +34,11 @@ func main() {
 			EnvVar: "PLUGIN_RELEASE,RELEASE",
 		},
 		cli.StringFlag{
+			Name:   "repo",
+			Usage:  "Kubernetes helm custom chart repository",
+			EnvVar: "PLUGIN_REPO,REPO",
+		},
+		cli.StringFlag{
 			Name:   "chart",
 			Usage:  "Kubernetes helm chart name",
 			EnvVar: "PLUGIN_CHART,CHART",
@@ -138,6 +143,7 @@ func run(c *cli.Context) error {
 			Values:        c.String("values"),
 			ValuesFiles:   c.String("values_files"),
 			Release:       c.String("release"),
+			Repository:    c.String("repo"),
 			Chart:         c.String("chart"),
 			Version:       c.String("chart-version"),
 			Debug:         c.Bool("debug"),

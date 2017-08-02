@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -171,6 +172,37 @@ func TestDetHelmInit(t *testing.T) {
 	if expected != result {
 		t.Error("Tiller not installed in proper namespace")
 	}
+}
+
+func TestHelmAddRepository(t *testing.T) {
+	plugin := &Plugin{
+		Config: Config{
+			Repository: "drone-helm=https://repo.drone-helm.com:443/stable",
+		},
+	}
+	repo, err := addRepository(plugin)
+	if err != nil {
+		t.Errorf("Failed to add repository: %v", err)
+	}
+	result := strings.Join(repo, " ")
+	expected := "repo add " + strings.Replace(plugin.Config.Repository, "=", " ", 1)
+
+	if expected != result {
+		t.Error("Failed to add repository")
+	}
+}
+
+func TestHelmAddRepositoryError(t *testing.T) {
+	plugin := &Plugin{
+		Config: Config{
+			Repository: "drone-helm=bad://repo.drone-helm.com:443/stable",
+		},
+	}
+	_, err := addRepository(plugin)
+	if err == nil {
+		t.Errorf("Expect to see error when repo URL is invalid")
+	}
+	log.Printf("Expected error: %v", err)
 }
 
 func TestDetHelmInitClient(t *testing.T) {

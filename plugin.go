@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -25,6 +26,7 @@ type (
 		SkipTLSVerify bool     `json:"tls_skip_verify"`
 		Namespace     string   `json:"namespace"`
 		Release       string   `json:"release"`
+		Repository    string   `json:"repo"`
 		Chart         string   `json:"chart"`
 		Version       string   `json:"version"`
 		Values        string   `json:"values"`
@@ -155,6 +157,25 @@ func doHelmInit(p *Plugin) []string {
 
 }
 
+func addRepository(p *Plugin) ([]string, error) {
+	repo := make([]string, 1)
+	repo[0] = "repo add"
+	// add custom chart repository
+	if p.Config.Repository != "" {
+		// validate repository
+		matched, err := regexp.MatchString(`^[\w-]+(=)(http|https)://[\w-./:]+`, p.Config.Repository)
+		if err != nil {
+			return nil, err
+		}
+		if !matched {
+			return nil, errors.New("Invalid repository URL")
+		}
+		// create valid 'repo add' command
+		repo = append(repo, strings.Split(p.Config.Repository, "=")...)
+	}
+	return repo, nil
+}
+
 // Exec default method
 func (p *Plugin) Exec() error {
 	resolveSecrets(p)
@@ -175,6 +196,21 @@ func (p *Plugin) Exec() error {
 	if err != nil {
 		return fmt.Errorf("Error running helm command: " + strings.Join(init[:], " "))
 	}
+
+	// add custom repository if defined and valid
+	if p.Config.Repository != "" {
+		repo, err := addRepository(p)
+		if err != nil {
+			log.Printf("Bad repository format (ignoring): %v", err)
+		} else {
+			err := runCommand(repo)
+			if err != nil {
+				return fmt.Errorf("Error running helm command: " + strings.Join(repo[:], " "))
+			}
+		}
+
+	}
+
 	setHelmCommand(p)
 
 	if p.Config.Debug {
